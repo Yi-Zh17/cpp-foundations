@@ -1,0 +1,89 @@
+# cpp-foundations
+
+Exercises, tests, and benchmarks for Phase 1–3 of my C++ roadmap. Everything here
+is written by hand.
+
+## Requirements
+
+- CMake ≥ 3.24, Ninja
+- GCC ≥ 12 or Clang ≥ 15 (C++20)
+
+```bash
+sudo apt install build-essential cmake ninja-build gdb valgrind clang-format clang-tidy linux-tools-generic
+```
+
+## Build presets
+
+| Preset | Flags | Use it for |
+|---|---|---|
+| `debug` | `-O0 -g3` | Writing code, stepping in gdb |
+| `release` | `-O3 -DNDEBUG -march=native` | All benchmarking |
+| `asan` | `-O1 -g -fsanitize=address,undefined` | Memory errors, UB |
+| `tsan` | `-O1 -g -fsanitize=thread` | Data races |
+
+```bash
+cmake --preset debug          # configure  → build/debug/
+cmake --build --preset debug  # compile
+ctest --preset debug          # run tests
+```
+
+Each preset uses its own build directory, so switching between them never
+triggers a full rebuild.
+
+## Running things
+
+```bash
+# Tests, verbose
+./build/debug/tests/foundations_tests
+
+# Sanitized test run — do this before calling any exercise finished
+cmake --build --preset asan && ctest --preset asan
+cmake --build --preset tsan && ctest --preset tsan
+
+# Benchmarks — release only, never debug
+./build/release/benchmarks/foundations_bench
+./build/release/benchmarks/foundations_bench --benchmark_filter=MyString
+./build/release/benchmarks/foundations_bench --benchmark_repetitions=10 --benchmark_report_aggregates_only=true
+```
+
+Pin the benchmark to one core and take the CPU out of power-save first:
+
+```bash
+sudo cpupower frequency-set -g performance
+taskset -c 2 ./build/release/benchmarks/foundations_bench
+```
+
+## Profiling
+
+```bash
+perf stat -e cycles,instructions,cache-misses,branch-misses ./build/release/benchmarks/foundations_bench
+perf record -g ./build/release/benchmarks/foundations_bench && perf report
+```
+
+## Layout
+
+```
+include/foundations/   public headers
+src/                   implementations
+tests/                 GoogleTest, one file per exercise
+benchmarks/            Google Benchmark, one file per exercise
+CMakePresets.json      the four build configurations
+```
+
+## Adding an exercise
+
+1. `include/foundations/my_vector.hpp` + `src/my_vector.cpp`
+2. Add the `.cpp` to the `add_library(foundations ...)` list in `CMakeLists.txt`
+   (header-only? skip this step)
+3. `tests/test_my_vector.cpp` → add to `tests/CMakeLists.txt`
+4. `benchmarks/bench_my_vector.cpp` → add to `benchmarks/CMakeLists.txt`
+5. Reconfigure once: `cmake --preset debug`
+
+## Progress
+
+- [ ] 1. `MyString` — rule of five, then SSO
+- [ ] 2. `MyVector<T>`
+- [ ] 3. `MyUniquePtr<T>`, `MySharedPtr<T>`
+- [ ] 4. `MyOptional<T>`
+- [ ] 5. `MyFunction<R(Args...)>`
+- [ ] 6. Expression evaluator
