@@ -48,7 +48,7 @@ endif()
 # ---- The library under study -------------------------------------------------
 
 add_library(foundations
-    src/my_string.cpp
+    src/custom_clock.cpp
 )
 target_include_directories(foundations PUBLIC include)
 target_link_libraries(foundations PRIVATE foundations_warnings)
@@ -60,7 +60,7 @@ include(FetchContent)
 if(FOUNDATIONS_BUILD_TESTS)
     FetchContent_Declare(googletest
         GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG        v1.15.2
+        GIT_TAG        v1.18.0
         GIT_SHALLOW    TRUE
     )
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -73,7 +73,7 @@ endif()
 if(FOUNDATIONS_BUILD_BENCHMARKS)
     FetchContent_Declare(benchmark
         GIT_REPOSITORY https://github.com/google/benchmark.git
-        GIT_TAG        v1.9.0
+        GIT_TAG        v1.9.5
         GIT_SHALLOW    TRUE
     )
     set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)

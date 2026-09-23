@@ -1,5 +1,5 @@
 add_executable(foundations_tests
-    test_my_string.cpp
+    test_custom_clock.cpp
 )
 target_link_libraries(foundations_tests
     PRIVATE foundations
