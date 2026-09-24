@@ -1,4 +1,4 @@
-#include <foundations/custom_clock.hpp>
+#include <foundations/histogram.hpp>
 
 #include <benchmark/benchmark.h>
 #include <string>

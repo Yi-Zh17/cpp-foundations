@@ -1,5 +1,5 @@
 add_executable(foundations_bench
-    bench_custom_clock.cpp
+    bench_histogram.cpp
 )
 target_link_libraries(foundations_bench
     PRIVATE foundations

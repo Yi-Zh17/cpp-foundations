@@ -48,7 +48,7 @@ endif()
 # ---- The library under study -------------------------------------------------
 
 add_library(foundations
-    src/custom_clock.cpp
+    src/histogram.cpp
 )
 target_include_directories(foundations PUBLIC include)
 target_link_libraries(foundations PRIVATE foundations_warnings)
