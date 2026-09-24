@@ -53,6 +53,11 @@ add_library(foundations
 target_include_directories(foundations PUBLIC include)
 target_link_libraries(foundations PRIVATE foundations_warnings)
 
+# ---- Exercise executables ----------------------------------------------------
+
+add_executable(clock_cost src/main.cpp)
+target_link_libraries(clock_cost PRIVATE foundations foundations_warnings)
+
 # ---- Dependencies ------------------------------------------------------------
 
 include(FetchContent)

@@ -5,11 +5,17 @@
 
 static void BM_CustomClock(benchmark::State& state) {
     for (auto _ : state) {
-        auto cur_time = now_ns();
-        benchmark::DoNotOptimize(cur_time);
-        benchmark::ClobberMemory();
+        now_ns();
     }
 }
 BENCHMARK(BM_CustomClock);
+
+static void BM_Record(benchmark::State& state) {
+    Histogram hist{};
+    for (auto _ : state) {
+        hist.record(1);
+    }
+}
+BENCHMARK(BM_Record);
 
 BENCHMARK_MAIN();

@@ -68,3 +68,45 @@ tests/                 GoogleTest, one file per exercise
 benchmarks/            Google Benchmark, one file per exercise
 CMakePresets.json      the four build configurations
 ```
+
+## Exercise 0
+---
+
+#### Steady_clock:
+
+##### Latency histogram  (1,000,000 samples)
+
+##### quantile           ns (>=)
+
+  p50                     1
+  p90                     32
+  p99                     32
+  p99.9                  32
+  max                    15,750
+
+---
+
+#### Raw register:
+
+##### Latency histogram  (1,000,000 samples)
+
+##### quantile           ns (>=)
+
+  p50                      1
+  p90                      1
+  p99                      1
+  p99.9                   32
+  max                     59
+
+On ARM architecture those two approaches are equally trustworthy because the frequency is fixed by design; on x86 architecture, steady clock is more trustworthy because raw register read operates per core, and the frequency is variable. When the system operates multiple tasks, it is possible that the read will be perturbed by other processes.
+
+---
+
+#### Benchmarking
+
+##### Benchmark               Time            CPU        Iterations
+
+BM_CustomClock          11.8 ns            11.7 ns     59748884
+BM_Record                   0.937 ns          0.937 ns     680993472
+
+---
