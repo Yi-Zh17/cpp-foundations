@@ -1,10 +1,33 @@
-# C++ Low-Latency Developer Roadmap — v3 (build-first, plain language)
+# C++ Performance Engineer Roadmap — v4 (build-first, deadline-driven)
 
-**Revised:** 23 September 2026.
-**Where you are:** strong C (wrote an in-memory filesystem), Rust-style intuition for ownership, ~100 LeetCode in C++, learncpp.com chapters 1–21 covered, CS:APP ch. 2–3 read, an AI-guided C++ KV store built, tooling set up.
-**Gaps:** C++11-and-later idioms (moves, smart pointers, templates in anger, C++17/20/23 library), exceptions/`expected`, virtual functions, threads, Linux systems programming, networking, measuring performance properly.
-**Target:** competitive for junior/mid C++ roles in HFT / quant trading, with C++ performance roles elsewhere as stepping stones.
-**Timeline:** none fixed. Milestones are ordered, not dated.
+**Revised:** 11 October 2026.
+**Where you are:** Phase 1 exercises 0–1 done. Strong C, Rust-style ownership intuition, ~100 LeetCode in C++, learncpp 1–21 covered, CS:APP ch. 2–3, an AI-guided KV store, tooling set up. Day job is Python/TypeScript on an AI product.
+**Target (changed):** a sponsored, well-paid **performance-oriented C++ role** in one of two overlapping markets — (1) trading/fintech (HFT as the ceiling, plus exchanges, market-data vendors, banks' low-latency teams) and (2) databases, storage and core infrastructure — with **CUDA as a differentiator**, not the main bet. The skills are the same for both markets; only the last two projects differ.
+**Hard deadline:** a job offer with visa sponsorship by **~August 2028**, which means applying from **March 2028** and a portfolio ready by **January 2028**. That is ~15 months from now. Everything below is cut to fit.
+**Why not AI-infra as the main target:** GPU/inference C++ is the highest-paying niche you could reach from here, but it's also the most exposed to an AI downturn. Trading and databases hire C++ performance engineers in every cycle. So: build for them, add one CUDA project to be able to interview for the third market as a bonus.
+
+## The visa constraint, in plain terms
+
+You switch from a Graduate visa to a Skilled Worker visa, which needs an employer with a sponsor licence. Published figures: the general salary threshold is **£41,700**, and someone switching from a Graduate visa counts as a **new entrant**, which lowers it to **£33,400** (or 70% of the occupation's going rate, whichever is higher) — sources disagree on whether lower figures (£38,700 / £30,960) apply from April 2026, so check gov.uk before you negotiate. In practice: every serious C++ performance role clears these numbers. **The real filter is the sponsor licence, not the salary** — trading firms, big tech, major fintechs and the established database companies all have one; small C++ shops often don't. The Phase 7 target list is built from that.
+
+## Dated milestones (backward from the deadline)
+
+| By | Done | Cut line if behind |
+|---|---|---|
+| **Feb 2027** | Phase 1 complete (exercises 2–8) + checkpoint | — |
+| **May 2027** | Phase 3 complete; Phase 2 exercises 2.1, 2.2, 2.4, 2.6 interleaved | drop 2.3, 2.5, 3.7 |
+| **Aug 2027** | Phase 4 complete (4.1–4.3, 4.6 mandatory) | drop 4.4, 4.5, 4.7 |
+| **Oct 2027** | Phase 5 (5.1–5.3, 5.5) | drop 5.4, 5.7 |
+| **Dec 2027** | **Project A: storage engine** (the KV store rewrite, extended) | — |
+| **Jan 2028** | **Project B: order book + feed handler**; CV + blog done | if behind: finish A properly, do B as a 2-week minimal order book |
+| **Feb 2028** | **Project C: CUDA** (Saturdays only, Nov 2027 – Feb 2028) | first thing to drop |
+| **Mar 2028 →** | Applying, Phase 7 in parallel | — |
+
+The cut lines are not failure; they are the plan. Projects A and B with real numbers, plus Phases 1–4 solid, is a hireable portfolio on its own.
+
+## The day-job lever (start this month)
+
+Find one hot path in the product you work on — a parser, a tokeniser, an embedding similarity loop, a data transform — and propose rewriting it as a C++ extension with `nanobind` (or `pybind11`). Even a 10× speedup on something small gives you (a) "C++ in a production system" on the CV, which matters enormously for a sponsor who sees a Python/TypeScript job title, and (b) a conversation with your manager about C++ work you can do *now*. Budget: this is an extra Saturday or two, not part of the roadmap slots.
 
 ---
 
@@ -529,7 +552,7 @@ You wrote a filesystem in C, so file descriptors, `read`/`write`, and the syscal
 
 **Steps:** (1) `Framer::feed(std::span<const std::byte>)` appends to an internal buffer and calls a callback for each complete message. (2) Tests: one message in one chunk; one message in 1-byte chunks; three messages in one chunk. (3) Fuzz: generate 1000 random messages, serialise, split at random points, feed, assert you get the same 1000 back. Run 10,000 iterations under ASan. (4) Plug it into the 5.2 edge-triggered server so it echoes *messages* rather than bytes.
 
-### 5.4 UDP multicast sender/receiver with sequence numbers
+### 5.4 (optional — only if Project B goes to live multicast) UDP multicast sender/receiver with sequence numbers
 
 **Build:** A sender that blasts packets to a multicast group (e.g. `239.1.1.1:5000`), each carrying a sequence number; a receiver that joins the group, reads with `recvmmsg` (many packets per syscall), and logs every gap in sequence numbers.
 
@@ -547,21 +570,7 @@ You wrote a filesystem in C, so file descriptors, `read`/`write`, and the syscal
 
 **Steps:** (1) Wrap 5.2's server as a function `run_on_core(int core, int port)`. (2) N threads, each `SO_REUSEPORT` + `pthread_setaffinity_np`. (3) Client at M = 1000 against N = 1, 2, 4, 8. (4) README: p50/p99/p99.9 vs N, plus the comparison to the 4.1-style design (a shared accept thread handing fds to a pool).
 
-### 5.6 The KV store, rewritten from a blank file
-
-**Build:** A Redis-compatible in-memory key-value server, from scratch, by hand: thread-per-core with `SO_REUSEPORT` (5.5); each core owns a `FlatHashMap` shard (3.1) allocated from a `PoolAllocator` (3.2); a streaming parser for the RESP protocol (Redis's wire format — `*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n`) built like the 5.3 framer, supporting pipelining (many commands per read); responses batched with `writev`; `GET`, `SET`, `DEL`, `PING`. Latency reported with `Histogram`. Benchmark with `redis-benchmark` and `memtier_benchmark`, including pipelined mode.
-
-**Why:** You've built this once with AI guidance and it didn't stick. Building it again from nothing, with your own containers, is the proof — and the line-by-line comparison against the old version is the best blog post in this whole plan.
-
-**Steps:** (1) RESP parser with the 5.3 fuzz approach; unit tests only. (2) Single-threaded server: `PING` only, tested with `redis-cli`. (3) `GET`/`SET`/`DEL` on one `FlatHashMap`. (4) Pipelining: parse as many commands as the buffer holds, queue the responses, one `writev`. (5) Thread-per-core sharding. (6) (Two Saturdays) `redis-benchmark -t get,set -P 16` and `memtier_benchmark`; compare to real Redis on the same box. (7) Blog post: your numbers, Redis's numbers, and three things your old AI-guided version did that you now know were wrong.
-
-### 5.7 Port 5.6 to `io_uring`
-
-**Build:** Replace `epoll` + `read` + `writev` with `io_uring` submission/completion queues (`liburing`): submit reads and writes in batches, harvest completions, far fewer syscalls.
-
-**Why:** `io_uring` is the modern Linux I/O interface; knowing when it helps (many small ops, batched) and when it doesn't (kernel-bypass is still faster) is current interview material.
-
-**Steps:** (1) Read Axboe's PDF (~45 min, one session). (2) Echo server with `liburing` (`io_uring_prep_recv`, `_send`, `_submit`, `_wait_cqe`). (3) Port 5.6. (4) Same benchmarks; README on whether it helped and why. Also read up on kernel bypass (DPDK, Solarflare Onload) — one session, concept only — and write a paragraph on what they remove.
+### 5.6 → moved to Project A below. 5.7 (`io_uring`) is cut; read one overview article on it when you get to Phase 7 so you can discuss it.
 
 ### Phase 5 checkpoint — out loud:
 - Write an epoll server from a blank file with correct partial-I/O handling, no reference.
@@ -572,109 +581,111 @@ You wrote a filesystem in C, so file descriptors, `read`/`write`, and the syscal
 
 ---
 
-## Phase 6 — HFT portfolio
-
-Each project is its own repo with a benchmark, a README with numbers, and a blog post. Reading here is unavoidable but is paired with a build: read the spec section for the message you're parsing *right now*, not the whole document.
-
-**Domain reading (15 min/session, alongside the projects):** Harris, *Trading and Exchanges* ch. 1–6, 10–12 (market structure, order types, order-driven markets). NASDAQ TotalView-ITCH 5.0 spec and OUCH 4.2 spec (public PDFs). FIX overview on fixtrading.org — what a tag=value message looks like, why binary replaced it.
-**Talks:** Cook "When a Microsecond Is an Eternity"; Gross "Trading at Light Speed"; Sapir "HFT and Ultra Low Latency Development Techniques"; McGuiness "Low Latency C++ for Fun and Profit".
-**Vocabulary to be fluent in:** bid/ask, spread, tick size, lot, limit/market/IOC/FOK orders, price-time priority vs pro-rata, hidden orders, opening/closing auctions, tick-to-trade, market making vs arbitrage vs stat-arb, co-location, FPGA vs software.
-
-### 6A — Order book and matching engine
-
-**Build:** For one instrument, a limit order book: a set of *price levels* (all resting orders at one price, first-in-first-out), bids on one side and asks on the other. Operations: `add` (new resting order), `cancel`, `modify`, `execute` (an incoming order that matches against the other side, possibly partially, generating trade reports). Everything O(1): price levels in a flat array indexed by price tick (e.g. 1,000,000 ticks) with a fallback map for prices outside the range; orders in each level as an `IntrusiveList` (3.3); order-ID → order via a `FlatHashMap` (3.1) into a `PoolAllocator` (3.2); no `malloc` after start-up. Same inputs must always give the same outputs (deterministic replay).
-
-**Why:** This is *the* HFT interview project. Every design choice — flat arrays, intrusive lists, pools — is something you built in Phase 3, now with a reason.
-
-**Steps:**
-1. Read Harris ch. 1–3 and 10 across four sessions to learn what an order book *is* (price-time priority, best bid/ask, spread). Then design on paper: draw the data structures.
-2. `Order { id, side, price, qty, ListHook }`; `PriceLevel { IntrusiveList<Order> orders; total_qty; }`; `Book { std::array<PriceLevel, MAX_TICKS> bids, asks; FlatHashMap<OrderId, Order*>; Pool<Order>; best_bid_idx; best_ask_idx; }`. `add` and `cancel` only. Tests.
-3. `best_bid()` / `best_ask()` maintenance when a level empties (scan toward the middle; measure how far it usually scans).
-4. Matching: an incoming buy at price P walks ask levels from best up to P, filling FIFO within each level, emitting `Trade{buy_id, sell_id, price, qty}`; the remainder rests. Partial fills. Tests for every case you can think of, including "cancel an order that was just partially filled".
-5. `modify` (price change = cancel + add and you lose priority; qty decrease keeps priority — Harris ch. 4). Out-of-range price fallback (`std::map`). Tests.
-6. Determinism: a replay test — record 1M random operations to a file, run twice, `diff` the trade output.
-7. (Two Saturdays) Benchmark: ns per `add`/`cancel`/`execute` as a `Histogram` each, with 1M resting orders. `perf record` and fix the top hotspot. README + blog post.
-
-### 6B — ITCH market data feed handler
-
-**Build:** A parser for NASDAQ's ITCH 5.0 binary protocol (each message is a 1-byte type code followed by fixed-layout big-endian fields; e.g. "Add Order" = type `A`, 36 bytes) that reads directly from the raw bytes with no copying, feeds every add/cancel/execute into a 6A book per instrument, and produces a top-of-book (best bid/ask) stream. Input: (1) a real sample ITCH day file from NASDAQ's FTP replayed from disk; (2) UDP multicast packets you generate from that file with a replay tool you write (5.4), with gaps and reordering handled. Verify against a slow Python reference implementation you also write.
-
-**Why:** Parsing a binary protocol from a spec, zero-copy, at millions of messages per second, is the daily job. The Python reference is how you know you're right.
-
-**Steps:**
-1. Download a sample ITCH 5.0 file (NASDAQ publishes them; ~5 GB compressed). Open the spec to the "Add Order" message *only*. Parse just that message type from the file with `std::span<const std::byte>` reads (build 6.3) and count them. Compare the count to a 20-line Python script.
-2. Add message types one per session: System Event, Stock Directory, Add Order (with MPID), Order Executed, Order Cancel, Order Delete, Order Replace, Trade. Each with a test against a hand-constructed byte array from the spec.
-3. Wire to 6A: one `Book` per stock locate code (a `std::vector<Book>` indexed by locate). Run the full day; print the final best bid/ask for 10 well-known symbols and compare to the Python reference (which now needs to maintain a simple book too).
-4. Top-of-book output: whenever best bid/ask changes, emit a record. Verify against Python for one symbol.
-5. (Saturday) Replay tool: read the file, wrap messages in MoldUDP64 framing (the spec's UDP wrapper, with sequence numbers), send over multicast at full speed. Receiver from 5.4 → framer → parser → books. Handle gaps (request nothing yet — just detect and count) and out-of-order packets (buffer and reorder).
-6. Benchmark: messages/s over the full day, ns/message `Histogram`, `perf record` and fix the top hotspot. README + blog post.
-
-### 6C — Low-latency logger
-
-**Build:** A `log(fmt, args...)` that, on the calling thread, only copies the raw arguments into a per-thread `SPSCQueue` (4.3) and returns in under 100 ns. A background thread pops, formats with `std::format`, and writes to disk. The format string is parsed at compile time (so the hot path knows the argument sizes with no runtime work), and nothing on the hot path allocates.
-
-**Why:** Every trading system needs to log without disturbing the hot path; "how would you build a logger?" is a standard design question, and this one gives you a number to quote.
-
-**Steps:**
-1. Naive version: `log` formats and `fprintf`s synchronously. Benchmark it — that's the baseline to destroy.
-2. Async: `log` pushes a `std::string` (already formatted) into an `SPSCQueue`; background thread writes. Benchmark: better, but the formatting and the `std::string` allocation are still on the hot path.
-3. Defer formatting: push a small struct `{ const char* fmt; timestamp; args as a fixed-size byte buffer }` — copy the raw `int`/`double`/`const char*` values with `memcpy`. Background thread formats. Benchmark.
-4. Compile-time format parsing: a `consteval` function that checks the format string against the argument types (build 6.7's technique) so mismatches fail to compile. Per-thread queue via `thread_local`.
-5. Benchmark vs `spdlog` async mode and vs the naive version; `Histogram` of `log()` call latency. README + blog post.
-
-### 6D (optional) — Gateway / strategy skeleton
-
-**Build:** Wire 6B → a trivial strategy (e.g. quote both sides one tick inside the spread, or buy when best-ask drops below a moving average) → orders in OUCH 4.2 format over TCP to a simulated exchange you write (a tiny 6A behind a socket) → fills back. Measure tick-to-trade: time from the market-data packet arriving to the order leaving. Add pre-trade risk checks (position limit, price collar) on the hot path and measure their cost.
-
-**Steps:** (1) Simulated exchange: 6A behind 5.2's server, speaking OUCH. (2) Strategy loop reading 6B's top-of-book. (3) Timestamps at each stage, `Histogram` of the total. (4) Risk checks; measure delta. README + blog post.
-
-### Phase 6 checkpoint — out loud:
-- Whiteboard an O(1) order book and justify every memory-layout choice.
-- Parse a binary protocol from a spec without help.
-- State your tick-to-trade latency and where each microsecond goes.
-- Talk about market microstructure for 20 minutes with someone who works in it.
 
 ---
 
-## Phase 7 — Interview preparation (in parallel with Phase 6)
+## Phase 6 — Portfolio (three projects, in this order)
 
-### Reading (now that every item maps to code you wrote)
-- *Effective Modern C++* — full read, one item per session, one flashcard per item.
-- Zhou, *A Practical Guide to Quantitative Finance Interviews* ch. 2–4 (brainteasers, probability, stochastic basics) — one problem per session.
-- Re-read your own 4.3 comments on memory ordering.
+Each project is its own repo with a benchmark, a README with numbers, and one blog post. These three are chosen so that a database company, a trading firm and a GPU team each see one project aimed at them and two that still impress.
 
-### Flashcard deck (Anki; review 10 min every morning before the build)
-vtable layout and the cost of a virtual call · `std::move` doesn't move; copy elision and NRVO · each `memory_order` with one canonical example · false sharing, cache line size, `alignas` · `unordered_map` internals vs open addressing · `unique_ptr` vs `shared_ptr` overhead and control block layout · exception cost model; `noexcept` and move · templates vs virtual; CRTP · `constexpr`/`consteval`/`constinit` · strict aliasing, `std::bit_cast` · latency numbers (L1 ~1 ns, L2 ~4 ns, L3 ~10–40 ns, DRAM ~80–100 ns, syscall ~100s of ns–µs, context switch ~µs) · epoll vs io_uring vs busy-polling · TCP vs UDP multicast for market data.
+### Project A — Storage engine (Nov–Dec 2027, ~8 weeks)
 
-### Practice
-- LeetCode: 100 mediums in C++ across arrays, hashing, two pointers, heaps, intervals, DP, graphs; 30-minute time-box each.
-- Systems design out loud, 45 min each, recorded on your phone: "design a feed handler", "design an order gateway with risk checks", "design a low-latency logger", "design a matching engine for 10k instruments". Listen back once.
+**Build:** Your KV store, rewritten from a blank file by hand, then extended from "in-memory cache" into a small **persistent storage engine**: a Redis-compatible server (RESP protocol, `GET`/`SET`/`DEL`/`PING`, pipelining) that is thread-per-core with `SO_REUSEPORT` (5.5), one `FlatHashMap` shard per core (3.1) on a `PoolAllocator` (3.2), a streaming parser built like the 5.3 framer, `writev`-batched responses — **plus** a write-ahead log so data survives a restart, and a crash-recovery test. Benchmarked with `redis-benchmark` and `memtier_benchmark` against real Redis on the same machine.
+
+**Why:** This is the project that gets you database/infra interviews, and the persistence layer is what separates it from "another Redis clone". The WAL is also a direct use of your filesystem background. The line-by-line comparison with your old AI-guided version is the blog post.
+
+**Steps:**
+1. RESP parser, fuzz-tested as in 5.3. Unit tests only. *(2 sessions)*
+2. Single-threaded server, `PING` only, tested with `redis-cli`. *(1 session)*
+3. `GET`/`SET`/`DEL` on one `FlatHashMap`. *(2 sessions)*
+4. Pipelining: parse every complete command in the buffer, queue responses, one `writev`. Test by sending 100 commands in one `write`. *(2 sessions)*
+5. Thread-per-core sharding, key → core by hash. *(Saturday)*
+6. Write-ahead log: every `SET`/`DEL` is appended to a per-core log file (`write` + periodic `fdatasync`) *before* the response is sent. Format: `[len][crc32][op][key][value]` — your 6.7 CRC table. On start-up, replay the log into the map. Test: write 10k keys, `kill -9` the server, restart, all keys present. *(2 Saturdays)*
+7. Log compaction: when the log passes a size limit, write a snapshot of the map and truncate. Test the crash case *during* compaction. *(Saturday)*
+8. Benchmark: `redis-benchmark -t get,set -P 16 -c 50` and `memtier_benchmark`, with and without `fdatasync`, vs Redis. `perf record` and fix the top hotspot. *(Saturday)*
+9. README with the table; blog post: your numbers, Redis's, and three things the old AI-guided version did wrong.
+
+**Done when:** the crash test passes; your `GET` throughput is within 2× of Redis; the blog post is up.
+
+### Project B — Order book + market-data feed handler (Jan 2028, ~5 weeks)
+
+**Build:** One repo, two halves. (1) A limit order book for one instrument with O(1) `add`/`cancel`/`modify`/`execute`: price levels in a flat array indexed by tick, orders at each level in an `IntrusiveList` (3.3), order-id lookup via `FlatHashMap` (3.1) into a `PoolAllocator` (3.2), no `malloc` after start-up, deterministic replay. (2) A parser for NASDAQ's ITCH 5.0 binary market-data format reading straight from bytes with `std::span` (6.3), driving one book per instrument over a full sample day, verified against a short Python reference you also write.
+
+**Why:** This is *the* trading-firm interview project, and every layout decision is something you built in Phase 3 with a reason. For non-trading employers it reads as "parsed a binary protocol at millions of messages per second and built an O(1) data structure" — still strong.
+
+**Domain reading (15 min/session, only during this project):** Harris, *Trading and Exchanges*, chapters 1–4 and 10 — just enough to know what an order book is. Nothing else.
+
+**Steps:**
+1. Harris ch. 1–3 across three sessions; draw the data structures on paper.
+2. `Order`, `PriceLevel`, `Book`; `add` and `cancel` only. Tests. *(2 sessions)*
+3. Best bid/ask maintenance when a level empties. *(1 session)*
+4. Matching with partial fills and trade reports; tests for every case. *(Saturday)*
+5. `modify`; out-of-range price fallback. *(1 session)*
+6. Determinism: replay 1M random ops twice, `diff` the output. *(1 session)*
+7. Benchmark: ns per op as a `Histogram` with 1M resting orders; `perf record`, fix one hotspot. *(Saturday)*
+8. ITCH: download a sample day file; parse *only* "Add Order" (type `A`, 36 bytes) and count them; match a 20-line Python script. *(1 session)*
+9. Add the other message types one per session: System Event, Stock Directory, Add Order (MPID), Order Executed, Order Cancel, Order Delete, Order Replace, Trade. Each tested against a hand-built byte array from the spec. *(4 sessions)*
+10. One book per stock; run the full day; compare final best bid/ask for 10 symbols against the Python reference. *(Saturday)*
+11. Benchmark messages/s over the day, ns/message; README + blog post. *(Saturday)*
+
+**Cut-line version (if behind by Jan 2028):** steps 1–7 only, two weeks, no ITCH. Still a real order book with numbers.
+
+### Project C — CUDA (Saturdays only, Nov 2027 – Feb 2028; first thing to drop)
+
+**Build:** A single well-measured CUDA project on your RTX 2060 (compute capability 7.5 — fine for everything here): a matrix-multiply kernel taken through the classic optimisation ladder — naive → shared-memory tiling → register blocking → vectorised loads — measured in GFLOP/s at each step against cuBLAS, with Nsight Compute profiles showing *why* each step helped. Then expose it to Python with `nanobind` and benchmark against `torch.matmul` on the same GPU.
+
+**Why:** It mirrors Phase 2.5 (the CPU matmul) so you can talk about the two side by side, it produces a chart interviewers recognise instantly, and the Python binding ties it to your day job. One deep project beats a scatter of toy kernels. It's optional because GPU hiring is the most AI-cycle-dependent of your three markets; if the market is good in 2028, this is the project that unlocks it.
+
+**One resource:** *Programming Massively Parallel Processors* (Kirk & Hwu) — read only chapters 2–5 (the CUDA model, memory hierarchy, tiling), one chapter per Saturday alongside the corresponding step. Nothing else until you're stuck.
+
+**Steps:** (1) Install the CUDA toolkit; a kernel that adds two vectors, timed with CUDA events. (2) Naive matmul; correctness vs a CPU version; GFLOP/s. (3) Shared-memory tiling (16×16 then 32×32). (4) Register blocking (each thread computes a 4×4 or 8×8 sub-block). (5) Nsight Compute: look at occupancy, memory throughput, and bank conflicts for each version; put the screenshots in the README. (6) Compare to cuBLAS; expect to reach 50–70% of it — say so honestly in the README. (7) `nanobind` binding, benchmark from Python vs PyTorch. (8) Blog post with the ladder chart.
+
+### Phase 6 checkpoint — out loud:
+- Explain your storage engine's crash-recovery guarantee and what `fdatasync` costs.
+- Whiteboard an O(1) order book and justify every memory-layout choice.
+- Parse a binary protocol from a spec without help.
+- (If C) Explain why tiling helps a GPU matmul using the words "shared memory" and "occupancy".
+
+---
+
+## Phase 7 — Interviews and applications (Feb 2028 onwards, in parallel with finishing B/C)
+
+### Who to target (sponsor-licence holders only — check each on the gov.uk register of licensed sponsors before applying)
+
+- **Trading / fintech — London and Amsterdam as equal first targets:** Optiver, IMC, Flow Traders, Da Vinci (all Amsterdam HQ), XTX, Maven, Jump, Citadel Securities, Tower, HRT, Mako, G-Research, Qube, Man AHL, Squarepoint; and the lower-ceiling, more-openings tier: LSEG, Cboe Europe, ICE, Bloomberg, MarketAxess, Tradeweb, the low-latency teams at the big banks. Apply to the Singapore/Hong Kong offices of the same firms in the same batch. **US offices (Chicago/NY) only via firms that also have a European office** — direct US hiring means the H-1B lottery; the realistic path is hire-in-Europe, transfer later.
+- **Project B is now un-cuttable:** every one of the extra-country doors above is a trading firm. If behind in Jan 2028, trim Project A's compaction step (A.7), not B's ITCH half.
+- **Databases / storage / infra (London, Cambridge, remote-EU):** ClickHouse, Redpanda, ScyllaDB, Neo4j, Couchbase, MongoDB (server team), Snowflake, Databricks, Arm, Microsoft (Azure storage, Edinburgh/Cambridge), Amazon (S3/EBS/Aurora teams, Edinburgh has an AWS office), Google (Spanner/Bigtable), Cloudflare, Fastly.
+- **GPU / AI infra (only if Project C is done):** NVIDIA (UK), Graphcore, Arm, Imagination, the inference teams at the big clouds.
+- **Rule:** apply in batches of 5–8; after each batch, note which checkpoint the rejections point at.
+
+### Practice (10 min flashcards every morning before the build; the rest on Saturdays)
+- **One resource:** *Effective Modern C++* — one item per session, one flashcard each; every item now maps to code you wrote.
+- Flashcard deck: vtable layout and virtual call cost · `std::move` doesn't move; copy elision · each `memory_order` with one example · false sharing · `unordered_map` vs open addressing · `unique_ptr`/`shared_ptr` overhead · `noexcept` and move · templates vs virtual · `constexpr`/`consteval` · strict aliasing, `bit_cast` · latency numbers (L1 ~1 ns, L2 ~4 ns, L3 ~10–40 ns, DRAM ~80–100 ns, syscall ~100s of ns–µs, context switch ~µs) · epoll vs io_uring · `fdatasync` vs `fsync` vs `O_DIRECT` · WAL vs LSM vs B-tree (one paragraph each).
+- LeetCode: 60 mediums in C++, 30-minute time-box each (you already have 100 under your belt; this is upkeep).
+- Systems design out loud, 45 min each, recorded: "design a KV store that survives crashes", "design a feed handler", "design a low-latency logger", "design a rate limiter at 10M req/s".
 - Weekly: explain one project to a non-expert in 5 minutes, then to an expert in 15.
-- At least four mock interviews (C++ Edinburgh meetup, or paid).
-- Read your own six-month-old code and refactor it as an interviewer would demand.
+- Four mock interviews (C++ Edinburgh meetup, or paid).
 
-### Applications
-- CV: one page; projects first, each with a number ("p99.9 of 2.1 µs at 4.2M msg/s"); links to blog posts.
-- Target firms (London / Amsterdam): Optiver, IMC, XTX, Maven, Qube, G-Research, Citadel Securities, Jump, Tower, HRT, Man AHL, Squarepoint, Flow Traders, Da Vinci, Mako. Also C++ performance roles outside trading (databases, HPC, ad-tech bidders, telecom, game engines) as stepping stones.
-- Apply in batches of 5–8; treat each rejection as a data point about which checkpoint needs work.
+### CV
+One page. Projects first, each with a number and a link. "Production C++" line from the day-job extension if you got it. Visa line: "Graduate visa; will require Skilled Worker sponsorship" — say it plainly, up front; it saves everyone time and the firms above don't blink at it.
 
 ---
 
 ## Accountability (solo-proof)
 
-- The blog is public from exercise 0. A 200-word post with one table counts. Post each one to r/cpp or the C++ Edinburgh community; one comment from a stranger beats a private note.
-- `notes.md` is the only tracking. No streaks, no percentages.
+- Blog public from exercise 2 onwards. A 200-word post with one table counts. Post to r/cpp or the C++ Edinburgh community.
+- `notes.md` is the only tracking. No streaks.
+- **Monthly on the 1st:** compare where you are against the milestone table at the top. If a cut line is triggered, apply it that day and move on — don't try to catch up.
 
 ## Progress log
 
-| Phase | Started | Checkpoint passed | Blog post |
+| Milestone | Target | Done | Blog post |
 |---|---|---|---|
-| 1 | | | |
-| 2 | | | |
-| 3 | | | |
-| 4 | | | |
-| 5 | | | |
-| 6A | | | |
-| 6B | | | |
-| 6C | | | |
-| 7 | | | |
+| Phase 1 checkpoint | Feb 2027 | | |
+| Phase 3 checkpoint | May 2027 | | |
+| Phase 4 checkpoint | Aug 2027 | | |
+| Phase 5 checkpoint | Oct 2027 | | |
+| Project A | Dec 2027 | | |
+| Project B | Jan 2028 | | |
+| Project C | Feb 2028 | | |
+| First application batch | Mar 2028 | | |
