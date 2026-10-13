@@ -72,31 +72,31 @@ CMakePresets.json      the four build configurations
 ## Exercise 0
 ---
 
-#### Steady_clock:
+#### Steady_clock
 
-##### Latency histogram  (1,000,000 samples)
+Latency histogram (1,000,000 samples)
 
-##### quantile           ns (>=)
-
-  p50                     1
-  p90                     32
-  p99                     32
-  p99.9                  32
-  max                    15,750
+| Quantile | ns (>=) |
+|----------|--------:|
+| p50      |       1 |
+| p90      |      32 |
+| p99      |      32 |
+| p99.9    |      32 |
+| max      |  15,750 |
 
 ---
 
-#### Raw register:
+#### Raw register
 
-##### Latency histogram  (1,000,000 samples)
+Latency histogram (1,000,000 samples)
 
-##### quantile           ns (>=)
-
-  p50                      1
-  p90                      1
-  p99                      1
-  p99.9                   32
-  max                     59
+| Quantile | ns (>=) |
+|----------|--------:|
+| p50      |       1 |
+| p90      |       1 |
+| p99      |       1 |
+| p99.9    |      32 |
+| max      |      59 |
 
 On ARM architecture those two approaches are equally trustworthy because the frequency is fixed by design; on x86 architecture, steady clock is more trustworthy because raw register read operates per core, and the frequency is variable. When the system operates multiple tasks, it is possible that the read will be perturbed by other processes.
 
@@ -104,9 +104,20 @@ On ARM architecture those two approaches are equally trustworthy because the fre
 
 #### Benchmarking
 
-##### Benchmark               Time            CPU        Iterations
-
-BM_CustomClock          11.8 ns            11.7 ns     59748884
-BM_Record                   0.937 ns          0.937 ns     680993472
+| Benchmark      |     Time |      CPU | Iterations |
+|----------------|---------:|---------:|-----------:|
+| BM_CustomClock |  11.8 ns |  11.7 ns |   59748884 |
+| BM_Record      | 0.937 ns | 0.937 ns |  680993472 |
 
 ---
+
+## Exercise 1
+
+#### Benchmarking
+
+| Benchmark     |    Time |     CPU | Iterations |
+|---------------|--------:|--------:|-----------:|
+| BM_Copy_Large |  134 ns |  133 ns |    5234623 |
+| BM_Copy_Small | 3.32 ns | 3.27 ns |  224531691 |
+| BM_Move_Large | 1.93 ns | 1.93 ns |  343159123 |
+| BM_Move_Small | 3.59 ns | 3.58 ns |  199849827 |

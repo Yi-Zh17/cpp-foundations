@@ -49,14 +49,15 @@ endif()
 
 add_library(foundations
     src/histogram.cpp
+    src/my_string.cpp
 )
 target_include_directories(foundations PUBLIC include)
 target_link_libraries(foundations PRIVATE foundations_warnings)
 
 # ---- Exercise executables ----------------------------------------------------
 
-add_executable(clock_cost src/main.cpp)
-target_link_libraries(clock_cost PRIVATE foundations foundations_warnings)
+#add_executable(clock_cost src/main.cpp)
+#target_link_libraries(clock_cost PRIVATE foundations foundations_warnings)
 
 # ---- Dependencies ------------------------------------------------------------
 
