@@ -8,7 +8,7 @@
 template <typename T>
 class MyVector {
 public:
-    MyVector<T>(size_t cap);
+    MyVector(size_t sz);
     ~MyVector();
 
     void push_back(const T& obj);
@@ -32,9 +32,9 @@ private:
 };
 
 template <typename T>
-MyVector<T>::MyVector(size_t cap) {
-    data = static_cast<T*>(::operator new(cap * sizeof(T)));
-    this->cap = cap;
+MyVector<T>::MyVector(size_t sz) {
+    data = static_cast<T*>(::operator new(sz * sizeof(T)));
+    cap = sz;
     num = 0;
 }
 
