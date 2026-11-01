@@ -50,6 +50,7 @@ endif()
 add_library(foundations
     src/histogram.cpp
     src/my_string.cpp
+    src/throw_object.cpp
 )
 target_include_directories(foundations PUBLIC include)
 target_link_libraries(foundations PRIVATE foundations_warnings)

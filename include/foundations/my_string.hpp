@@ -26,6 +26,10 @@ public:
     size_t size() const;
     const char* c_str() const;
 
+    static size_t normal();
+    static size_t copy();
+    static size_t move();
+
 private:
     bool small = true;
     size_t length;

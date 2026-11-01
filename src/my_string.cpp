@@ -2,12 +2,18 @@
 
 #include <cstring>
 
+static size_t norm = 0;
+static size_t cpy = 0;
+static size_t mv = 0;
+
 MyString::MyString() {
     // Empty string
     this->length = 0;
     inline_buf[0] = '\0';
     heap.capacity = 0;
     heap.string = nullptr;
+
+    norm++;
 }
 
 MyString::MyString(const char* str) {
@@ -22,6 +28,8 @@ MyString::MyString(const char* str) {
     } else {
         strcpy(inline_buf, str);
     }
+
+    norm++;
 }
 
 MyString::MyString(const MyString& another) {
@@ -36,6 +44,8 @@ MyString::MyString(const MyString& another) {
     } else {
         strcpy(inline_buf, another.inline_buf);
     }
+
+    cpy++;
 }
 
 MyString::MyString(MyString&& another) noexcept {
@@ -52,6 +62,8 @@ MyString::MyString(MyString&& another) noexcept {
         another.heap.capacity = 0;
     }
     another.length = 0;
+
+    mv++;
 }
 
 MyString::MyString(std::string_view str_view) {
@@ -65,6 +77,8 @@ MyString::MyString(std::string_view str_view) {
     } else {
         strcpy(inline_buf, str_view.data());
     }
+
+    norm++;
 }
 
 MyString::~MyString() {
@@ -103,6 +117,8 @@ MyString& MyString::operator=(const MyString& another) {
         }
         strcpy(inline_buf, another.inline_buf);
     }
+
+    cpy++;
     
     return *this;
 }
@@ -129,6 +145,8 @@ MyString& MyString::operator=(MyString&& another) noexcept {
     }
 
     another.length = 0;
+
+    mv++;
 
     return *this;
 }
@@ -167,3 +185,8 @@ const char* MyString::c_str() const {
     return heap.string;
 }
 
+size_t MyString::normal() { return norm; }
+
+size_t MyString::copy() { return cpy; }
+
+size_t MyString::move() { return mv; }

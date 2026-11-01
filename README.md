@@ -121,3 +121,42 @@ On ARM architecture those two approaches are equally trustworthy because the fre
 | BM_Copy_Small | 3.32 ns | 3.27 ns |  224531691 |
 | BM_Move_Large | 1.93 ns | 1.93 ns |  343159123 |
 | BM_Move_Small | 3.59 ns | 3.58 ns |  199849827 |
+
+---
+
+## Exercise 2
+
+#### Benchmarking
+
+`push_back(MyString(...))` into a fresh vector each iteration. Release preset, Apple M5, median of 5 repetitions.
+
+Short string (`"Hello!"`, fits in SSO):
+
+| Benchmark           | Pushes    |         Time | ns / push | CV     |
+|---------------------|----------:|-------------:|----------:|-------:|
+| BM_My_Vector_Small  |     1,000 |     9,251 ns |      9.25 | 1.47 % |
+| BM_Std_Vector_Small |     1,000 |     9,436 ns |      9.44 | 0.55 % |
+| BM_My_Vector_Large  | 1,000,000 | 9,437,672 ns |      9.44 | 0.80 % |
+| BM_Std_Vector_Large | 1,000,000 | 9,537,431 ns |      9.54 | 0.93 % |
+
+MyVector / std::vector: 0.98× (1,000), 0.99× (1,000,000).
+
+Long string (`"Hello! This is a test for long strings."`, 39 chars, heap-allocated):
+
+| Benchmark           | Pushes    |          Time | ns / push | CV     |
+|---------------------|----------:|--------------:|----------:|-------:|
+| BM_My_Vector_Small  |     1,000 |     33,862 ns |     33.86 | 0.72 % |
+| BM_Std_Vector_Small |     1,000 |     19,035 ns |     19.04 | 2.82 % |
+| BM_My_Vector_Large  | 1,000,000 | 34,800,785 ns |     34.80 | 1.78 % |
+| BM_Std_Vector_Large | 1,000,000 | 19,772,272 ns |     19.77 | 2.30 % |
+
+MyVector / std::vector: 1.78× (1,000), 1.76× (1,000,000).
+
+Growth factor (long string, MyVector only; growth rounds up, `cap == 0` → 1):
+
+| Pushes    |      2× |    1.5× | Change | 1.5× vs std::vector |
+|----------:|--------:|--------:|-------:|--------------------:|
+|     1,000 | 33.9 µs | 36.0 µs |   +6 % |               1.89× |
+| 1,000,000 | 34.8 ms | 37.5 ms |   +8 % |               1.91× |
+
+Reallocations from cap 8 to 1,000,000: 17 at 2×, ~29 at 1.5×.
